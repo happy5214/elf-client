@@ -12,6 +12,8 @@ This script downloads an ELF file for an aliquot sequence from FactorDB.
 """
 
 import configparser
+import http.cookiejar
+import itertools
 import re
 import sys
 import time
@@ -35,32 +37,43 @@ def download_elf(sequence_base: str) -> list[tuple[int, str]]:
     elf_contents = []
     incomplete = True
     first_run = True
-    session = get_session()
+    already_exceeded = False
+    cookies = get_cookies()
     while incomplete:
         params = {'seq': sequence_base}
         base = sequence_base
+        temp_elf_contents = []
         try:
-            with session.get('https://factordb.com/elf.php', params=params, stream=True) as r:
+            with requests.get('https://factordb.com/elf.php', params=params, stream=True, cookies=cookies) as r:
+                line_count = 0
+                first_line = True
                 bad_file = False
                 for line in r.iter_lines(decode_unicode=True):
-                    parsed_line = parse_elf_line(line)
-                    if parsed_line[1] == 0:
+                    if 'html' in line:
                         bad_file = True
                         break
-                    if not first_run:
-                        first_run = True
+                    if first_line and not first_run:
+                        first_line = False
                         continue
-                    if parsed_line[1] is None:
+                    line_count += 1
+                    parsed_line = parse_elf_line(line)
+                    if not parsed_line[1]:
                         if not incomplete:
-                            elf_contents.append((parsed_line[0], ''))
+                            temp_elf_contents.append((parsed_line[0], ''))
                         break
-                    if parsed_line[0] < 1e199:
-                        base = parsed_line[0]
-                    elf_contents.append(parsed_line)
-                if not bad_file:
-                    incomplete = False
+                    base = parsed_line[0]
+                    temp_elf_contents.append(parsed_line)
+                incomplete = bad_file or line_count > 0
         except requests.exceptions.ChunkedEncodingError:
             pass
+        if temp_elf_contents:
+            temp_max = max(map(lambda x: x[0], temp_elf_contents))
+            if temp_max < 1e199 or already_exceeded:
+                elf_contents.extend(temp_elf_contents)
+            else:
+                elf_contents.extend(tuple(itertools.takewhile(lambda x: x[0] < 1e199, temp_elf_contents)))
+                already_exceeded = True
+            base = elf_contents[-1][0]
         if bad_file:
             print('Download error, sleeping 5 seconds...')
             time.sleep(5)
@@ -72,8 +85,7 @@ def download_elf(sequence_base: str) -> list[tuple[int, str]]:
     return elf_contents
 
 
-def get_session() -> requests.Session:
-    s = requests.Session()
+def get_cookies() -> http.cookiejar.CookieJar:
     login_info = get_login()
     if login_info:
         user = login_info['User']
@@ -82,19 +94,19 @@ def get_session() -> requests.Session:
             'pass': login_info['Password'],
             'dlogin': 'Login',
         }
-        r = s.post('https://factordb.com/login.php', params)
-        while not s.cookies.get('fdbuser'):
+        r = requests.post('https://factordb.com/login.php', params)
+        while not r.cookies.get('fdbuser'):
             print('Login error, sleeping 5 seconds...')
             time.sleep(5)
-            r = s.post('https://factordb.com/login.php', params)
+            r = requests.post('https://factordb.com/login.php', params)
             while r.status_code != 200:
                 print('Login error, sleeping 5 seconds...')
                 time.sleep(5)
-                r = s.post('https://factordb.com/login.php', params)
+                r = requests.post('https://factordb.com/login.php', params)
         print(f'Logged in as {user}.')
     else:
         print('Running anonymously.')
-    return s
+    return r.cookies
 
 
 def get_login() -> Optional[dict]:
