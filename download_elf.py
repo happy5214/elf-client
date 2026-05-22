@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "requests<3",
+# ]
+# ///
 
 """FactorDB aliquot sequence downloader.
 
