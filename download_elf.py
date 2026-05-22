@@ -61,7 +61,6 @@ def download_elf(sequence_base: str) -> list[tuple[int, str]]:
                         if not incomplete:
                             temp_elf_contents.append((parsed_line[0], ''))
                         break
-                    base = parsed_line[0]
                     temp_elf_contents.append(parsed_line)
                 incomplete = bad_file or line_count > 0
         except requests.exceptions.ChunkedEncodingError:
