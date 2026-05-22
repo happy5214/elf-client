@@ -19,11 +19,9 @@ from typing import Optional
 import requests
 
 
-elf_line_format = re.compile(r'^\d+ \.\s+(\d+) = (\d+(?:\^\d+)?(?: \* \d+(?:\^\d+)?)*)?$')
-
-
 def parse_elf_line(elf_line: str) -> tuple[int, Optional[str]]:
-    match = elf_line_format.match(elf_line)
+    elf_line_format = r'^\d+ \.\s+(\d+) = (\d+(?:\^\d+)?(?: \* \d+(?:\^\d+)?)*)?$'
+    match = re.match(elf_line_format, elf_line)
     if match:
         return (int(match[1]), match[2])
     else:
