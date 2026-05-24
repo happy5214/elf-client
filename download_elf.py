@@ -6,9 +6,9 @@
 # ]
 # ///
 
-"""FactorDB aliquot sequence downloader.
+"""FactorDB/mersenne.ca aliquot sequence downloader.
 
-This script downloads an ELF file for an aliquot sequence from FactorDB.
+This script downloads an ELF file for an aliquot sequence from FactorDB or mersenne.ca.
 """
 
 import argparse
@@ -25,10 +25,10 @@ import requests
 
 def main() -> int:
     args = parse_args()
-    if args.use_mersenne_ca:
-        ElfDownloaderClass = MersenneCAElfDownloader
-    else:
+    if args.use_factordb:
         ElfDownloaderClass = FactorDBElfDownloader
+    else:
+        ElfDownloaderClass = MersenneCAElfDownloader
     elf_downloader = ElfDownloaderClass(args.sequence_base, args.expected_length)
     try:
         elf_downloader.download_and_write_elf(f'alq_{args.sequence_base}.elf')
@@ -42,7 +42,7 @@ def main() -> int:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="FactorDB aliquot sequence downloader")
+    parser = argparse.ArgumentParser(description="FactorDB/mersenne.ca aliquot sequence downloader")
     parser.add_argument(
         "sequence_base",
         type=str,
@@ -55,10 +55,10 @@ def parse_args() -> argparse.Namespace:
         help="Provide the expected length of the sequence. If the sequence is shorter, this script will try alternative download techniques until it matches.",
     )
     parser.add_argument(
-        "--use-mersenne-ca",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Default to the cached ELF files on mersenne.ca instead of using FactorDB. These are more reliable, but may be out-of-date.",
+        "--use-factordb",
+        action='store_true',
+        default=False,
+        help="Use FactorDB instead of the cached files on mersenne.ca. FactorDB may be less reliable, but the data will always be current.",
     )
     return parser.parse_args()
 
