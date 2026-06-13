@@ -15,6 +15,7 @@ import argparse
 import configparser
 import http.cookiejar
 import itertools
+import math
 import re
 import subprocess
 import sys
@@ -30,15 +31,15 @@ def main() -> int:
         ElfDownloaderClass = FactorDBElfDownloader
     else:
         ElfDownloaderClass = MersenneCAElfDownloader
-    elf_downloader = ElfDownloaderClass(args.sequence_base, args.expected_length, args.validation_attempts)
+    elf_downloader = ElfDownloaderClass(args.sequence_base, args.sequence_power, args.expected_length, args.validation_attempts)
     try:
-        elf_downloader.download_and_write_elf(f'alq_{args.sequence_base}.elf')
+        elf_downloader.download_and_write_elf()
     except RuntimeError as error:
         if ElfDownloaderClass == MersenneCAElfDownloader:
             print(f'Could not download ELF file from mersenne.ca: {error}.')
             print('Attempting to download from FactorDB instead.')
-            elf_downloader = FactorDBElfDownloader(args.sequence_base, args.expected_length, args.validation_attempts)
-            elf_downloader.download_and_write_elf(f'alq_{args.sequence_base}.elf')
+            elf_downloader = FactorDBElfDownloader(args.sequence_base, args.sequence_power, args.expected_length, args.validation_attempts)
+            elf_downloader.download_and_write_elf()
         else:
             raise RuntimeError('Failed to download from FactorDB') from error
     return 0
@@ -48,8 +49,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="FactorDB/mersenne.ca aliquot sequence downloader")
     parser.add_argument(
         "sequence_base",
-        type=str,
-        help="The starting value of the sequence.",
+        type=int,
+        help="The starting value of the sequence. If the start value is a perfect power, this is the base.",
+    )
+    parser.add_argument(
+        "sequence_power",
+        type=int,
+        default=1,
+        nargs='?',
+        help="The starting value exponent for the sequence.",
     )
     parser.add_argument(
         "--expected-length",
@@ -73,16 +81,20 @@ def parse_args() -> argparse.Namespace:
 
 
 class ElfDownloader:
-    def __init__(self, sequence_base: str, expected_length: int, validation_attempts: int):
+    def __init__(self, sequence_base: int, sequence_power: int, expected_length: int, validation_attempts: int):
         self.sequence_base = sequence_base
+        self.sequence_power = sequence_power
+        if math.log10(sequence_base) * sequence_power > 240:
+            raise ValueError('Start value is excessively large')
+        self.actual_start_value = sequence_base**sequence_power
         self.expected_length = expected_length
         self.validation_attempts = validation_attempts
         self.config = self._get_config()
 
-    def download_and_write_elf(self, filename: str) -> None:
+    def download_and_write_elf(self) -> None:
         for i in range(self.validation_attempts):
             self.download_elf()
-            returncode = self.write_elf(filename)
+            returncode = self.write_elf()
             if returncode == 0:
                 return
         print(f'Failed to validate ELF file after {self.validation_attempts} attempts, stopping...', file=sys.stderr)
@@ -90,16 +102,16 @@ class ElfDownloader:
     def download_elf(self) -> list[tuple[int, str]]:
         raise NotImplementedError()
 
-    def write_elf(self, filename: str) -> int:
+    def write_elf(self) -> int:
         if not self.elf_contents:
             print('ELF file is empty, cannot validate...', file=sys.stderr)
             return 1
-        with open(filename, 'wt') as elf_file:
+        with open(f'alq_{self.actual_start_value}.elf', 'wt') as elf_file:
             for i, line in enumerate(self.elf_contents):
                 print(f'{i} .   {line[0]} = {line[1]}', file=elf_file)
         if self.config.has_option('Programs', 'aliqueit'):
             print('aliqueit is configured, validating ELF file...')
-            process = subprocess.run([self.config['Programs']['aliqueit'], '-t', self.sequence_base])
+            process = subprocess.run([self.config['Programs']['aliqueit'], '-t', str(self.actual_start_value)])
             if process.returncode == 0:
                 print('ELF file validation succeeded.')
             else:
@@ -128,8 +140,8 @@ class ElfDownloader:
 
 
 class FactorDBElfDownloader(ElfDownloader):
-    def __init__(self, sequence_base: str, expected_length: int, validation_attempts: int):
-        super().__init__(sequence_base, expected_length, validation_attempts)
+    def __init__(self, sequence_base: int, sequence_power: int, expected_length: int, validation_attempts: int):
+        super().__init__(sequence_base, sequence_power, expected_length, validation_attempts)
         self.cookies = self._get_cookies()
         self.elf_contents = []
 
@@ -147,7 +159,10 @@ class FactorDBElfDownloader(ElfDownloader):
 
     def _actually_download_elf(self) -> list[tuple[int, str]]:
         self.elf_contents = []
-        base = self.sequence_base
+        if self.sequence_power > 1:
+            base = f'{self.sequence_base}^{self.sequence_power}'
+        else:
+            base = self.sequence_base
         incomplete = True
         first_run = True
         already_exceeded = False
@@ -239,7 +254,11 @@ class FactorDBElfDownloader(ElfDownloader):
 class MersenneCAElfDownloader(ElfDownloader):
     def download_elf(self) -> list[tuple[int, str]]:
         print('Downloading from mersenne.ca...')
-        with requests.get(f'https://www.mersenne.ca/factordb/elf/alq_{self.sequence_base}.elf') as r:
+        if self.sequence_power > 1:
+            base = f'{self.sequence_base}p{self.sequence_power}'
+        else:
+            base = self.sequence_base
+        with requests.get(f'https://www.mersenne.ca/factordb/elf/alq_{base}.elf') as r:
             if not r.ok:
                 raise RuntimeError('ELF file not found on mersenne.ca')
             lines = r.text.splitlines()
