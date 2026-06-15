@@ -1,8 +1,9 @@
-# download-elf
+# elf-client
 
-This script is a Python-based downloader for `.elf`-format aliquot sequence
-files. It can download files from either [FactorDB](https://factordb.com/)
-or [James Heinrich's cache at mersenne.ca](https://www.mersenne.ca/factordb/elf/),
+This package contains Python-based clients for `.elf`-format aliquot sequence
+files. It can upload and download `.elf` files using either
+[FactorDB](https://factordb.com/) or
+[James Heinrich's cache at mersenne.ca](https://www.mersenne.ca/factordb/elf/),
 defaulting to the latter, more reliable option when possible.
 
 ## Requirements
@@ -19,10 +20,22 @@ runners like `uv`.
 python3 download_elf.py <sequence_start>
 ```
 
+or
+
+```
+python3 upload_elf.py <sequence_start>
+```
+
 For more detailed help, run the following:
 
 ```
 python3 download_elf.py --help
+```
+
+or
+
+```
+python3 upload_elf.py --help
 ```
 
 ## FactorDB login
