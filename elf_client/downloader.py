@@ -47,6 +47,7 @@ class FactorDBElfDownloader(ElfDownloader, FactorDBElfClient):
     def __init__(self, sequence_base: int, sequence_power: int, attempts: int, expected_length: int):
         super().__init__(sequence_base, sequence_power, attempts)
         self.expected_length = expected_length
+        self.elf_contents = []
 
     def download_elf(self) -> list[tuple[int, str]]:
         print('Downloading from FactorDB...')

@@ -26,7 +26,7 @@ def main() -> int:
     try:
         elf_downloader.download_and_write_elf()
     except RuntimeError as error:
-        if ElfDownloaderClass == MersenneCAElfDownloader:
+        if isinstance(elf_downloader, MersenneCAElfDownloader):
             print(f'Could not download ELF file from mersenne.ca: {error}.')
             print('Attempting to download from FactorDB instead.')
             elf_downloader = FactorDBElfDownloader(args.sequence_base, args.sequence_power, args.validation_attempts, args.expected_length)
