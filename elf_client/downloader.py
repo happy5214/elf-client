@@ -15,6 +15,8 @@ from .client import ElfClient, FactorDBElfClient
 class ElfDownloader(ElfClient):
     """Base class for an ELF file downloader."""
 
+    elf_contents: list[tuple[int, str]]
+
     def download_and_write_elf(self) -> None:
         for i in range(self.attempts):
             self.download_elf()

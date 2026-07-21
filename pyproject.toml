@@ -1,0 +1,21 @@
+[project]
+name = "elf-client"
+version = "0.1.0"
+requires-python = ">=3.10"
+description = "Clients for .elf-format aliquot sequence files."
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Alexander Jones", email = "happy5214@gmail.com" }
+]
+dependencies = [
+    "requests<3",
+]
+
+[project.scripts]
+download_elf = 'download_elf:main'
+upload_elf = 'upload_elf:main'
+
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12.0"]
+build-backend = "uv_build"

@@ -24,7 +24,7 @@ class ElfClient:
         self.config = self._get_config()
 
     def validate_elf(self) -> None:
-        if self.config.has_option('Programs', 'aliqueit'):
+        if self.config is not None and self.config.has_option('Programs', 'aliqueit'):
             print('aliqueit is configured, validating ELF file...')
             process = subprocess.run([self.config['Programs']['aliqueit'], '-t', str(self.actual_start_value)])
             if process.returncode == 0:
@@ -39,9 +39,9 @@ class ElfClient:
         elf_line_format = r'^\d+ \.\s+(\d+) = (\d+(?:\^\d+)?(?: \* \d+(?:\^\d+)?)*)?$'
         match = re.match(elf_line_format, elf_line)
         if match:
-            return (int(match[1]), match[2])
+            return int(match[1]), match[2]
         else:
-            return (0, None)
+            return 0, None
 
     def _get_config(self) -> Optional[configparser.ConfigParser]:
         config = configparser.ConfigParser()

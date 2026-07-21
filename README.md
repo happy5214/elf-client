@@ -3,7 +3,7 @@
 This package contains Python-based clients for `.elf`-format aliquot sequence
 files. It can upload and download `.elf` files using either
 [FactorDB](https://factordb.com/) or
-[James Heinrich's cache at mersenne.ca](https://www.mersenne.ca/factordb/elf/),
+[James Heinrich's cache at mersenne.ca](https://www.mersenne.ca/aliquot/),
 defaulting to the latter, more reliable option when possible.
 
 ## Requirements
