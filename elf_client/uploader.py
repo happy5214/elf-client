@@ -59,7 +59,7 @@ class MersenneCAElfUploader(ElfUploader):
         print('Uploading to mersenne.ca...')
         with open(f'alq_{self.actual_start_value}.elf', 'rb') as elf_file:
             files = {'elf_file': elf_file}
-            with requests.post(f'https://www.mersenne.ca/factordb/elf/index.php', files=files) as r:
+            with requests.post(f'https://www.mersenne.ca/aliquot/index.php', files=files) as r:
                 if r.status_code == requests.codes.created:
                     print('Uploaded to mersenne.ca.')
                 elif r.status_code == requests.codes.forbidden:

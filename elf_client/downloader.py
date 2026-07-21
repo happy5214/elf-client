@@ -128,8 +128,9 @@ class MersenneCAElfDownloader(ElfDownloader):
         if self.sequence_power > 1:
             base = f'{self.sequence_base}p{self.sequence_power}'
         else:
-            base = self.sequence_base
-        with requests.get(f'https://www.mersenne.ca/factordb/elf/alq_{base}.elf') as r:
+            base = str(self.sequence_base)
+        params = {'download': base}
+        with requests.get(f'https://www.mersenne.ca/aliquot/index.php', params=params) as r:
             if not r.ok:
                 raise RuntimeError('ELF file not found on mersenne.ca')
             lines = r.text.splitlines()
